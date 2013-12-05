@@ -20,8 +20,6 @@
 
 
 #include "defines.h"
-
-
 #include "flash.h"
 #include "lib_usb.h"
 
@@ -46,12 +44,9 @@ int main(void)
 	mcu_init();
 #endif
 
-#if (BOARD_TYPE == AUAV3_BOARD)
 	flash_init();             // Start flash services
-#endif
 
-	usb_init();    // perhaps this would be better called usb_init()
-
+	usb_init();
         
         init_events();
         timer_init();
