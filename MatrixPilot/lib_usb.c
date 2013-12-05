@@ -44,8 +44,11 @@ void usb_init(void)
 	#if defined(USB_INTERRUPT)
 		USBDeviceAttach();
 	#endif
-	delay_ms(100);
 
+}
+
+void usb_bootload(void)
+{
 	printf("Preflight setup\r\n");
 	while (U1OTGSTATbits.VBUSVD)
 	{
