@@ -41,7 +41,6 @@
         <itemPath>../mavlink_options.h</itemPath>
         <itemPath>../parameter_storage.h</itemPath>
         <itemPath>../parameter_scaling.h</itemPath>
-        <itemPath>../usb.h</itemPath>
         <itemPath>../freemixer_options.h</itemPath>
         <itemPath>../flash.h</itemPath>
         <itemPath>../lib_usb.h</itemPath>
@@ -477,6 +476,7 @@
         <property key="UART 4" value="true"/>
         <property key="USB" value="true"/>
         <property key="debugoptions.useswbreakpoints" value="false"/>
+        <property key="firmware.download.all" value="false"/>
         <property key="hwtoolclock.frcindebug" value="false"/>
         <property key="memories.aux" value="false"/>
         <property key="memories.bootflash" value="false"/>

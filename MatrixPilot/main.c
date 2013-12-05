@@ -57,6 +57,7 @@ int main(void)
         timer_init();
 
         sys_tick_init();
+	SRbits.IPL = 0; // turn on all interrupt priorities
 
 //	init_config();  // this will need to be moved up in order to support runtime hardware options
 //	udb_init();
@@ -79,9 +80,8 @@ int main(void)
 #if (USE_TELELOG == 1)
 		telemetry_log();
 #endif
-#if (USE_USB == 1)
+
 		USBPollingService();
-#endif
 #if (CONSOLE_UART != 0 && SILSIM == 0)
 		console();
 #endif
