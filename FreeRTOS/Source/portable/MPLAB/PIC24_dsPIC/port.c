@@ -148,6 +148,44 @@ unsigned portBASE_TYPE uxCriticalNesting = 0xef;
 		#endif /* __HAS_EDS__ */
 #endif /* MPLAB_PIC24_PORT */
 
+
+// Modified to include dsPIC33EP
+#if defined( __dsPIC30F__ ) || defined( __dsPIC33F__ ) || defined( __dsPIC33E__ )
+	#define portRESTORE_CONTEXT()																						\
+		asm volatile(	"MOV	_pxCurrentTCB, W0		\n"	/* Restore the stack pointer for the task. */				\
+						"MOV	[W0], W15				\n"																\
+						"POP	W0						\n"	/* Restore the critical nesting counter for the task. */	\
+						"MOV	W0, _uxCriticalNesting	\n"							 									\
+						"POP	DSWPAG					\n"         /* Changed PSVPAG for DSWPAG */											\
+						"POP    DSRPAG					\n"																\
+						"POP	CORCON					\n"																\
+						"POP	DOENDH					\n"																\
+						"POP	DOENDL					\n"																\
+						"POP	DOSTARTH				\n"																\
+						"POP	DOSTARTL				\n"																\
+						"POP	DCOUNT					\n"																\
+						"POP	ACCBU					\n"																\
+						"POP	ACCBH					\n"																\
+						"POP	ACCBL					\n"																\
+						"POP	ACCAU					\n"																\
+						"POP	ACCAH					\n"																\
+						"POP	ACCAL					\n"																\
+						"POP	TBLPAG					\n"																\
+						"POP	RCOUNT					\n"	/* Restore the registers from the stack. */					\
+						"POP	W14						\n"																\
+						"POP.D	W12						\n"																\
+						"POP.D	W10						\n"																\
+						"POP.D	W8						\n"																\
+						"POP.D	W6						\n"																\
+						"POP.D	W4						\n"																\
+						"POP.D	W2						\n"																\
+						"POP.D	W0						\n"																\
+						"POP	SR						  " );
+#endif /* MPLAB_DSPIC33E_PORT */
+
+
+
+// Modified to include dsPIC33EP
 #if defined( __dsPIC30F__ ) || defined( __dsPIC33F__ )
 
 	#define portRESTORE_CONTEXT()																						\
@@ -365,3 +403,7 @@ void __attribute__((__interrupt__, auto_psv)) configTICK_INTERRUPT_HANDLER( void
 	}
 }
 
+// TODO something with the stack overflow hook
+void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed char *pcTaskName )
+{
+}

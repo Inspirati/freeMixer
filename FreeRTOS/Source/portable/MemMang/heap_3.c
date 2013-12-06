@@ -63,169 +63,69 @@
     1 tab == 4 spaces!
 */
 
-// Modified for dsPIC33E
-#if defined( __dsPIC33E__ )
-        .global _vPortYield
-		.extern _vTaskSwitchContext
-		.extern uxCriticalNesting
 
-_vPortYield:
+/*
+ * Implementation of pvPortMalloc() and vPortFree() that relies on the
+ * compilers own malloc() and free() implementations.
+ *
+ * This file can only be used if the linker is configured to to generate
+ * a heap memory area.
+ *
+ * See heap_1.c, heap_2.c and heap_4.c for alternative implementations, and the 
+ * memory management pages of http://www.FreeRTOS.org for more information.
+ */
 
-		PUSH	SR						/* Save the SR used by the task.... */
-		PUSH	W0						/* ....then disable interrupts. */
-		MOV		#32, W0
-		MOV		W0, SR
-		PUSH	W1						/* Save registers to the stack. */
-		PUSH.D	W2
-		PUSH.D	W4
-		PUSH.D	W6
-		PUSH.D 	W8
-		PUSH.D 	W10
-		PUSH.D	W12
-		PUSH	W14
-		PUSH	RCOUNT
-		PUSH	TBLPAG
-		PUSH	ACCAL
-		PUSH	ACCAH
-		PUSH	ACCAU
-		PUSH	ACCBL
-		PUSH	ACCBH
-		PUSH	ACCBU
-		PUSH	DCOUNT
-		PUSH	DOSTARTL
-		PUSH	DOSTARTH
-		PUSH	DOENDL
-		PUSH	DOENDH
+#include <stdlib.h>
 
+/* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
+all the API functions to use the MPU wrappers.  That should only be done when
+task.h is included from an application file. */
+#define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
-		PUSH	CORCON
-/*		PUSH	PSVPAG        Modified from PSVPAG to DSxPAG for dsPIC33e */
-        PUSH    DSRPAG		
-        PUSH    DSWPAG					    /* Changed PSVPAG for DSWPAG DSRPAG*/
+#include "FreeRTOS.h"
+#include "task.h"
 
-		MOV		_uxCriticalNesting, W0		/* Save the critical nesting counter for the task. */
-		PUSH	W0
-		MOV		_pxCurrentTCB, W0			/* Save the new top of stack into the TCB. */
-		MOV		W15, [W0]
+#undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
-		call 	_vTaskSwitchContext
+/*-----------------------------------------------------------*/
 
-		MOV		_pxCurrentTCB, W0			/* Restore the stack pointer for the task. */
-		MOV		[W0], W15
-		POP		W0							/* Restore the critical nesting counter for the task. */
-		MOV		W0, _uxCriticalNesting
-/*		POP		PSVPAG        Modified from PSVPAG to DSxPAG for dsPIC33e */
-        POP     DSWPAG
-        POP     DSRPAG
-		POP		CORCON
-		POP		DOENDH
-		POP		DOENDL
-		POP		DOSTARTH
-		POP		DOSTARTL
-		POP		DCOUNT
-		POP		ACCBU
-		POP		ACCBH
-		POP		ACCBL
-		POP		ACCAU
-		POP		ACCAH
-		POP		ACCAL
-		POP		TBLPAG
-		POP		RCOUNT						/* Restore the registers from the stack. */
-		POP		W14
-		POP.D	W12
-		POP.D	W10
-		POP.D	W8
-		POP.D	W6
-		POP.D	W4
-		POP.D	W2
-		POP.D	W0
-		POP		SR
+void *pvPortMalloc( size_t xWantedSize )
+{
+void *pvReturn;
 
-        return
+	vTaskSuspendAll();
+	{
+		pvReturn = malloc( xWantedSize );
+		traceMALLOC( pvReturn, xWantedSize );
+	}
+	xTaskResumeAll();
 
-        .end
-#endif /* defined( __dsPIC33E__ ) */
+	#if( configUSE_MALLOC_FAILED_HOOK == 1 )
+	{
+		if( pvReturn == NULL )
+		{
+			extern void vApplicationMallocFailedHook( void );
+			vApplicationMallocFailedHook();
+		}
+	}
+	#endif
+	
+	return pvReturn;
+}
+/*-----------------------------------------------------------*/
+
+void vPortFree( void *pv )
+{
+	if( pv )
+	{
+		vTaskSuspendAll();
+		{
+			free( pv );
+			traceFREE( pv, 0 );
+		}
+		xTaskResumeAll();
+	}
+}
 
 
-
-
-
-#if defined( __dsPIC30F__ ) || defined( __dsPIC33F__ )
-
-        .global _vPortYield
-		.extern _vTaskSwitchContext
-		.extern uxCriticalNesting
-
-_vPortYield:
-
-		PUSH	SR						/* Save the SR used by the task.... */
-		PUSH	W0						/* ....then disable interrupts. */
-		MOV		#32, W0
-		MOV		W0, SR
-		PUSH	W1						/* Save registers to the stack. */
-		PUSH.D	W2
-		PUSH.D	W4
-		PUSH.D	W6
-		PUSH.D 	W8
-		PUSH.D 	W10
-		PUSH.D	W12
-		PUSH	W14
-		PUSH	RCOUNT
-		PUSH	TBLPAG
-		PUSH	ACCAL
-		PUSH	ACCAH
-		PUSH	ACCAU
-		PUSH	ACCBL
-		PUSH	ACCBH
-		PUSH	ACCBU
-		PUSH	DCOUNT
-		PUSH	DOSTARTL
-		PUSH	DOSTARTH
-		PUSH	DOENDL
-		PUSH	DOENDH
-
-
-		PUSH	CORCON
-		PUSH	PSVPAG
-		MOV		_uxCriticalNesting, W0		/* Save the critical nesting counter for the task. */
-		PUSH	W0
-		MOV		_pxCurrentTCB, W0			/* Save the new top of stack into the TCB. */
-		MOV		W15, [W0]
-
-		call 	_vTaskSwitchContext
-
-		MOV		_pxCurrentTCB, W0			/* Restore the stack pointer for the task. */
-		MOV		[W0], W15
-		POP		W0							/* Restore the critical nesting counter for the task. */
-		MOV		W0, _uxCriticalNesting
-		POP		PSVPAG
-		POP		CORCON
-		POP		DOENDH
-		POP		DOENDL
-		POP		DOSTARTH
-		POP		DOSTARTL
-		POP		DCOUNT
-		POP		ACCBU
-		POP		ACCBH
-		POP		ACCBL
-		POP		ACCAU
-		POP		ACCAH
-		POP		ACCAL
-		POP		TBLPAG
-		POP		RCOUNT						/* Restore the registers from the stack. */
-		POP		W14
-		POP.D	W12
-		POP.D	W10
-		POP.D	W8
-		POP.D	W6
-		POP.D	W4
-		POP.D	W2
-		POP.D	W0
-		POP		SR
-
-        return
-
-        .end
-
-#endif /* defined( __dsPIC30F__ ) || defined( __dsPIC33F__ ) */
 

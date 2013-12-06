@@ -23,6 +23,8 @@
 #include "flash.h"
 #include "lib_usb.h"
 
+#include "../FreeRTOS/Source/include/FreeRTOS.h"
+
 //#if (CONSOLE_UART != 0)
 //#include "console.h"
 //#endif

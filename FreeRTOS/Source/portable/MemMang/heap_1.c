@@ -63,169 +63,108 @@
     1 tab == 4 spaces!
 */
 
-// Modified for dsPIC33E
-#if defined( __dsPIC33E__ )
-        .global _vPortYield
-		.extern _vTaskSwitchContext
-		.extern uxCriticalNesting
 
-_vPortYield:
+/*
+ * The simplest possible implementation of pvPortMalloc().  Note that this
+ * implementation does NOT allow allocated memory to be freed again.
+ *
+ * See heap_2.c, heap_3.c and heap_4.c for alternative implementations, and the
+ * memory management pages of http://www.FreeRTOS.org for more information.
+ */
+#include <stdlib.h>
 
-		PUSH	SR						/* Save the SR used by the task.... */
-		PUSH	W0						/* ....then disable interrupts. */
-		MOV		#32, W0
-		MOV		W0, SR
-		PUSH	W1						/* Save registers to the stack. */
-		PUSH.D	W2
-		PUSH.D	W4
-		PUSH.D	W6
-		PUSH.D 	W8
-		PUSH.D 	W10
-		PUSH.D	W12
-		PUSH	W14
-		PUSH	RCOUNT
-		PUSH	TBLPAG
-		PUSH	ACCAL
-		PUSH	ACCAH
-		PUSH	ACCAU
-		PUSH	ACCBL
-		PUSH	ACCBH
-		PUSH	ACCBU
-		PUSH	DCOUNT
-		PUSH	DOSTARTL
-		PUSH	DOSTARTH
-		PUSH	DOENDL
-		PUSH	DOENDH
+/* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
+all the API functions to use the MPU wrappers.  That should only be done when
+task.h is included from an application file. */
+#define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
+#include "FreeRTOS.h"
+#include "task.h"
 
-		PUSH	CORCON
-/*		PUSH	PSVPAG        Modified from PSVPAG to DSxPAG for dsPIC33e */
-        PUSH    DSRPAG		
-        PUSH    DSWPAG					    /* Changed PSVPAG for DSWPAG DSRPAG*/
+#undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
-		MOV		_uxCriticalNesting, W0		/* Save the critical nesting counter for the task. */
-		PUSH	W0
-		MOV		_pxCurrentTCB, W0			/* Save the new top of stack into the TCB. */
-		MOV		W15, [W0]
+/* A few bytes might be lost to byte aligning the heap start address. */
+#define configADJUSTED_HEAP_SIZE	( configTOTAL_HEAP_SIZE - portBYTE_ALIGNMENT )
 
-		call 	_vTaskSwitchContext
+/* Allocate the memory for the heap. */
+static unsigned char ucHeap[ configTOTAL_HEAP_SIZE ];
+static size_t xNextFreeByte = ( size_t ) 0;
 
-		MOV		_pxCurrentTCB, W0			/* Restore the stack pointer for the task. */
-		MOV		[W0], W15
-		POP		W0							/* Restore the critical nesting counter for the task. */
-		MOV		W0, _uxCriticalNesting
-/*		POP		PSVPAG        Modified from PSVPAG to DSxPAG for dsPIC33e */
-        POP     DSWPAG
-        POP     DSRPAG
-		POP		CORCON
-		POP		DOENDH
-		POP		DOENDL
-		POP		DOSTARTH
-		POP		DOSTARTL
-		POP		DCOUNT
-		POP		ACCBU
-		POP		ACCBH
-		POP		ACCBL
-		POP		ACCAU
-		POP		ACCAH
-		POP		ACCAL
-		POP		TBLPAG
-		POP		RCOUNT						/* Restore the registers from the stack. */
-		POP		W14
-		POP.D	W12
-		POP.D	W10
-		POP.D	W8
-		POP.D	W6
-		POP.D	W4
-		POP.D	W2
-		POP.D	W0
-		POP		SR
+/*-----------------------------------------------------------*/
 
-        return
+void *pvPortMalloc( size_t xWantedSize )
+{
+void *pvReturn = NULL;
+static unsigned char *pucAlignedHeap = NULL;
 
-        .end
-#endif /* defined( __dsPIC33E__ ) */
+	/* Ensure that blocks are always aligned to the required number of bytes. */
+	#if portBYTE_ALIGNMENT != 1
+		if( xWantedSize & portBYTE_ALIGNMENT_MASK )
+		{
+			/* Byte alignment required. */
+			xWantedSize += ( portBYTE_ALIGNMENT - ( xWantedSize & portBYTE_ALIGNMENT_MASK ) );
+		}
+	#endif
 
+	vTaskSuspendAll();
+	{
+		if( pucAlignedHeap == NULL )
+		{
+			/* Ensure the heap starts on a correctly aligned boundary. */
+			pucAlignedHeap = ( unsigned char * ) ( ( ( portPOINTER_SIZE_TYPE ) &ucHeap[ portBYTE_ALIGNMENT ] ) & ( ( portPOINTER_SIZE_TYPE ) ~portBYTE_ALIGNMENT_MASK ) );
+		}
 
+		/* Check there is enough room left for the allocation. */
+		if( ( ( xNextFreeByte + xWantedSize ) < configADJUSTED_HEAP_SIZE ) &&
+			( ( xNextFreeByte + xWantedSize ) > xNextFreeByte )	)/* Check for overflow. */
+		{
+			/* Return the next free byte then increment the index past this
+			block. */
+			pvReturn = pucAlignedHeap + xNextFreeByte;
+			xNextFreeByte += xWantedSize;
+		}
 
+		traceMALLOC( pvReturn, xWantedSize );
+	}	
+	xTaskResumeAll();
 
+	#if( configUSE_MALLOC_FAILED_HOOK == 1 )
+	{
+		if( pvReturn == NULL )
+		{
+			extern void vApplicationMallocFailedHook( void );
+			vApplicationMallocFailedHook();
+		}
+	}
+	#endif
 
-#if defined( __dsPIC30F__ ) || defined( __dsPIC33F__ )
+	return pvReturn;
+}
+/*-----------------------------------------------------------*/
 
-        .global _vPortYield
-		.extern _vTaskSwitchContext
-		.extern uxCriticalNesting
+void vPortFree( void *pv )
+{
+	/* Memory cannot be freed using this scheme.  See heap_2.c, heap_3.c and
+	heap_4.c for alternative implementations, and the memory management pages of
+	http://www.FreeRTOS.org for more information. */
+	( void ) pv;
 
-_vPortYield:
+	/* Force an assert as it is invalid to call this function. */
+	configASSERT( pv == NULL );
+}
+/*-----------------------------------------------------------*/
 
-		PUSH	SR						/* Save the SR used by the task.... */
-		PUSH	W0						/* ....then disable interrupts. */
-		MOV		#32, W0
-		MOV		W0, SR
-		PUSH	W1						/* Save registers to the stack. */
-		PUSH.D	W2
-		PUSH.D	W4
-		PUSH.D	W6
-		PUSH.D 	W8
-		PUSH.D 	W10
-		PUSH.D	W12
-		PUSH	W14
-		PUSH	RCOUNT
-		PUSH	TBLPAG
-		PUSH	ACCAL
-		PUSH	ACCAH
-		PUSH	ACCAU
-		PUSH	ACCBL
-		PUSH	ACCBH
-		PUSH	ACCBU
-		PUSH	DCOUNT
-		PUSH	DOSTARTL
-		PUSH	DOSTARTH
-		PUSH	DOENDL
-		PUSH	DOENDH
+void vPortInitialiseBlocks( void )
+{
+	/* Only required when static memory is not cleared. */
+	xNextFreeByte = ( size_t ) 0;
+}
+/*-----------------------------------------------------------*/
+
+size_t xPortGetFreeHeapSize( void )
+{
+	return ( configADJUSTED_HEAP_SIZE - xNextFreeByte );
+}
 
 
-		PUSH	CORCON
-		PUSH	PSVPAG
-		MOV		_uxCriticalNesting, W0		/* Save the critical nesting counter for the task. */
-		PUSH	W0
-		MOV		_pxCurrentTCB, W0			/* Save the new top of stack into the TCB. */
-		MOV		W15, [W0]
-
-		call 	_vTaskSwitchContext
-
-		MOV		_pxCurrentTCB, W0			/* Restore the stack pointer for the task. */
-		MOV		[W0], W15
-		POP		W0							/* Restore the critical nesting counter for the task. */
-		MOV		W0, _uxCriticalNesting
-		POP		PSVPAG
-		POP		CORCON
-		POP		DOENDH
-		POP		DOENDL
-		POP		DOSTARTH
-		POP		DOSTARTL
-		POP		DCOUNT
-		POP		ACCBU
-		POP		ACCBH
-		POP		ACCBL
-		POP		ACCAU
-		POP		ACCAH
-		POP		ACCAL
-		POP		TBLPAG
-		POP		RCOUNT						/* Restore the registers from the stack. */
-		POP		W14
-		POP.D	W12
-		POP.D	W10
-		POP.D	W8
-		POP.D	W6
-		POP.D	W4
-		POP.D	W2
-		POP.D	W0
-		POP		SR
-
-        return
-
-        .end
-
-#endif /* defined( __dsPIC30F__ ) || defined( __dsPIC33F__ ) */
 

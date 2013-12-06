@@ -28,7 +28,6 @@
 #define TMR3_PRESCALE   8
 #define SYS_TICK_HZ     1000
 
-uint16_t ticktime = 0;
 
 void sys_tick_init(void)
 {
@@ -55,10 +54,17 @@ void __attribute__((__interrupt__,__no_auto_psv__)) _T3Interrupt(void)
 
 	_T3IF = 0;              // clear the interrupt
 
-        ticktime++;
-
         // Poll software timers
         timer_tick();
 
 	interrupt_restore_corcon;
+}
+
+void vApplicationTickHook(void) // 1000 Hz
+{
+	static int i = 0;
+
+        // Poll software timers
+        timer_tick();
+
 }
