@@ -94,6 +94,6 @@ int main(void)
 void vApplicationIdleHook( void )
 {
 	/* Schedule the co-routines from within the idle task hook. */
-	vCoRoutineSchedule();
+//	vCoRoutineSchedule();
         USBPollingService();
 }
