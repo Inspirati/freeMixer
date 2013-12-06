@@ -53,8 +53,13 @@ int main(void)
         init_events();
         timer_init();
 
-        sys_tick_init();
+        init_parameter_storage();
+
 	SRbits.IPL = 0; // turn on all interrupt priorities
+
+        vTaskStartScheduler();
+
+//        sys_tick_init();
 
 //	init_config();  // this will need to be moved up in order to support runtime hardware options
 //	udb_init();
@@ -63,7 +68,6 @@ int main(void)
 //	init_behavior();
 //	init_serial();
 
-        init_parameter_storage();
 
 
 	if (setjmp())
@@ -82,7 +86,14 @@ int main(void)
 #if (CONSOLE_UART != 0 && SILSIM == 0)
 		console();
 #endif
-		udb_run();
+//		udb_run();
 	}
 	return 0;
+}
+
+void vApplicationIdleHook( void )
+{
+	/* Schedule the co-routines from within the idle task hook. */
+	vCoRoutineSchedule();
+        USBPollingService();
 }

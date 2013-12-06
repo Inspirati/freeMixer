@@ -45,7 +45,7 @@ void sys_tick_init(void)
 
 }
 
-
+/*
 // This interrupt is the system clock tick
 void __attribute__((__interrupt__,__no_auto_psv__)) _T3Interrupt(void)
 {
@@ -59,11 +59,12 @@ void __attribute__((__interrupt__,__no_auto_psv__)) _T3Interrupt(void)
 
 	interrupt_restore_corcon;
 }
+*/
+
+
 
 void vApplicationTickHook(void) // 1000 Hz
 {
-	static int i = 0;
-
         // Poll software timers
         timer_tick();
 
