@@ -49,6 +49,7 @@
 #define FREERTOS_CONFIG_H
 
 #include "../libUDB/libUDB.h"
+#include "oscillator.h"
 //#include "HardwareProfile.h"
 
 #define MPLAB_DSPIC_PORT
@@ -71,7 +72,7 @@
 #define configTICK_RATE_HZ				( ( portTickType ) 1000 )
 
 
-#define configCPU_CLOCK_HZ				( ( unsigned portLONG ) 32000000UL )  
+#define configCPU_CLOCK_HZ				FREQOSC     // ( ( unsigned portLONG ) 32000000UL )
 //#define configPERIPHERAL_CLOCK_HZ		( ( unsigned portLONG ) 40000000UL )
 //#define configPERIPHERAL_CLOCK_HZ		( ( unsigned portLONG ) 80000000UL )
 
@@ -91,7 +92,7 @@
 #define configTOTAL_HEAP_SIZE			( ( size_t ) 2000 )
 #define configMAX_TASK_NAME_LEN			( 8 )
 #define configUSE_TRACE_FACILITY		0
-#define configUSE_16_BIT_TICKS			0
+#define configUSE_16_BIT_TICKS			1
 #define configIDLE_SHOULD_YIELD			1
 #define configUSE_MUTEXES				1
 #define configCHECK_FOR_STACK_OVERFLOW	2

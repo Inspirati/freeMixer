@@ -20,13 +20,22 @@
 
 
 #include "defines.h"
-#include "../libUDB/oscillator.h"
-#if (CONSOLE_UART != 0)
-#include "console.h"
-#endif
-#if (USE_TELELOG != 0)
-#include "telemetry_log.h"
-#endif
+
+//#include "../libUDB/oscillator.h"
+//#if (CONSOLE_UART != 0)
+//#include "console.h"
+//#endif
+//#if (USE_TELELOG != 0)
+//#include "telemetry_log.h"
+//#endif
+
+
+#include <stdlib.h>
+
+/* Scheduler include files. */
+#include "FreeRTOS.h"
+#include "task.h"
+
 
 
 #include "lib_usb.h"
@@ -34,6 +43,10 @@
 #include "USB/usb_function_msd.h"
 #include <stdio.h>
 #include "usb_cdc.h"
+
+
+#define usbSTACK_SIZE				500
+
 
 #if (HILSIM_USB != 1)
 
@@ -44,6 +57,32 @@ void usb_init(void)
 	#if defined(USB_INTERRUPT)
 		USBDeviceAttach();
 	#endif
+
+}
+
+
+/* The task function.  Repeatedly performs a 32 bit calculation, checking the
+result against the expected result.  If the result is incorrect then the
+context switch must have caused some corruption. */
+static portTASK_FUNCTION_PROTO( vUSBTask, pvParameters );
+
+
+
+void vStartUSBTasks( unsigned portBASE_TYPE uxPriority )
+{
+    xTaskCreate( vUSBTask, ( signed char * ) "USB", usbSTACK_SIZE, NULL, uxPriority, ( xTaskHandle * ) NULL );
+}
+
+static portTASK_FUNCTION( vUSBTask, pvParameters )
+{
+    /* Just to stop compiler warnings. */
+    ( void ) pvParameters;
+
+    for( ;; )
+    {
+        USBPollingService();
+        vTaskDelay( 5 / portTICK_RATE_MS );
+    }
 
 }
 

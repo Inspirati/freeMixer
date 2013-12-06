@@ -20,10 +20,11 @@
 
 
 #include "defines.h"
+#include "../FreeRTOS/Source/include/FreeRTOS.h"
+#include "task.h"
+
 #include "flash.h"
 #include "lib_usb.h"
-
-#include "../FreeRTOS/Source/include/FreeRTOS.h"
 
 //#if (CONSOLE_UART != 0)
 //#include "console.h"
@@ -56,6 +57,8 @@ int main(void)
         init_parameter_storage();
 
 	SRbits.IPL = 0; // turn on all interrupt priorities
+
+        vStartUSBTasks(tskIDLE_PRIORITY);
 
         vTaskStartScheduler();
 
@@ -95,5 +98,5 @@ void vApplicationIdleHook( void )
 {
 	/* Schedule the co-routines from within the idle task hook. */
 //	vCoRoutineSchedule();
-        USBPollingService();
+//        USBPollingService();
 }

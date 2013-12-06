@@ -10,4 +10,7 @@ void usb_bootload(void);
 // Poll USB
 void USBPollingService(void);
 
+void vStartUSBTasks( unsigned portBASE_TYPE uxPriority );
+
+
 #endif //LIB_USB_H

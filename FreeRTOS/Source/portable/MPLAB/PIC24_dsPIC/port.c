@@ -77,6 +77,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+
 /* Hardware specifics. */
 #define portBIT_SET 1
 #define portTIMER_PRESCALE 8
@@ -372,6 +373,19 @@ const unsigned long ulCompareMatch = ( ( configCPU_CLOCK_HZ / portTIMER_PRESCALE
 
 	/* Start the timer. */
 	T1CONbits.TON = 1;
+
+
+//        // Initialize timer3, used as the system tick timer
+//	TMR3 = 0;
+//	T3CONbits.TCKPS = 1;    // prescaler = 8
+//
+//        //	PR1 = 50000;            // 25 millisecond period at 16 Mz clock, tmr prescale = 8
+//	PR3 = (FREQOSC / (TMR3_PRESCALE * CLK_PHASES)) / SYS_TICK_HZ; // period 1/HEARTBEAT_HZ
+//	T3CONbits.TCS = 0;      // use the crystal to drive the clock
+//	_T3IP = INT_PRI_T3;     // set interrupt priority
+//	_T3IF = 0;              // clear the interrupt
+//	_T3IE = 1;              // enable the interrupt
+//	T3CONbits.TON = 1;      // turn on timer 1
 }
 /*-----------------------------------------------------------*/
 
@@ -406,4 +420,8 @@ void __attribute__((__interrupt__, auto_psv)) configTICK_INTERRUPT_HANDLER( void
 // TODO something with the stack overflow hook
 void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed char *pcTaskName )
 {
+    for( ;; )
+    {
+        asm("nop");
+    }
 }
