@@ -91,9 +91,11 @@ extern unsigned long ulTMR5_OverflowCount;
 #define configMAX_PRIORITIES			( ( unsigned portBASE_TYPE ) 5 )
 #define configMINIMAL_STACK_SIZE		( 190 )
 #define configISR_STACK_SIZE			( 400 )
+
 // #define configTOTAL_HEAP_SIZE			( ( size_t ) 28000 )
 #define configTOTAL_HEAP_SIZE			( ( size_t ) 4000 )
 //#define configTOTAL_HEAP_SIZE			( ( size_t ) 2000 )
+
 #define configMAX_TASK_NAME_LEN			( 8 )
 #define configUSE_TRACE_FACILITY		1
 #define configUSE_STATS_FORMATTING_FUNCTIONS    1
@@ -104,6 +106,7 @@ extern unsigned long ulTMR5_OverflowCount;
 #define configUSE_MUTEXES				1
 #define configCHECK_FOR_STACK_OVERFLOW	2
 #define configQUEUE_REGISTRY_SIZE		0
+#define configUSE_MALLOC_FAILED_HOOK            1
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 			0

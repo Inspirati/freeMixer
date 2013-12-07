@@ -100,3 +100,8 @@ void vApplicationIdleHook( void )
 //	vCoRoutineSchedule();
 //        USBPollingService();
 }
+
+void vApplicationMallocFailedHook( void )
+{
+    DPRINT("Failed Malloc")
+}
