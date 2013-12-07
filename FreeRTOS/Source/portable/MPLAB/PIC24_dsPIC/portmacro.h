@@ -143,6 +143,22 @@ extern void vPortYield( void );
 
 #define portNOP()				asm volatile ( "NOP" )
 
+
+/*-----------------------------------------------------------*/
+/* Runtime stats counter functions and macros */
+
+extern void vStartRuntimeStatsTimer(void);
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() vStartRuntimeStatsTimer();
+
+
+#define portALT_GET_RUN_TIME_COUNTER_VALUE( ulCountValue )                              \
+{                                                                                       \
+    T5CONbits.TON = 0;                                                                  \
+    ulCountValue = ( ( ulTMR5_OverflowCount << 16UL ) | ( unsigned long ) TMR5 );       \
+    T5CONbits.TON = 1;                                                                  \
+}
+
+
 #ifdef __cplusplus
 }
 #endif

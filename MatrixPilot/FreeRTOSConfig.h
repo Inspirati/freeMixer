@@ -66,6 +66,10 @@
  * See http://www.freertos.org/a00110.html.
  *----------------------------------------------------------*/
 
+// Overflow couter for runtime stats process measurement
+extern unsigned long ulTMR5_OverflowCount;
+
+
 #define configUSE_PREEMPTION			1
 #define configUSE_IDLE_HOOK				1
 #define configUSE_TICK_HOOK				1
@@ -93,8 +97,8 @@
 #define configMAX_TASK_NAME_LEN			( 8 )
 #define configUSE_TRACE_FACILITY		1
 #define configUSE_STATS_FORMATTING_FUNCTIONS    1
-//#define configGENERATE_RUN_TIME_STATS           0
-//#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS  0
+#define configGENERATE_RUN_TIME_STATS           1
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS  1
 #define configUSE_16_BIT_TICKS			1
 #define configIDLE_SHOULD_YIELD			1
 #define configUSE_MUTEXES				1

@@ -79,6 +79,8 @@
 #include "task.h"
 #include "string.h"
 
+#include "interrupt.h"
+
 /* Hardware specifics. */
 #ifdef __XC16__
 #include "xc.h"
@@ -101,6 +103,9 @@
 #define portBIT_SET 1
 #define portTIMER_PRESCALE 8
 #define portINITIAL_SR	0
+
+// Overflow couter for runtime stats process measurement
+unsigned long ulTMR5_OverflowCount = 0;
 
 /* Defined for backward compatability with project created prior to
 FreeRTOS.org V4.3.0. */
@@ -436,10 +441,40 @@ const unsigned long ulCompareMatch = ( ( configCPU_CLOCK_HZ / portTIMER_PRESCALE
 	T1CONbits.TCKPS0 = 1;
 	T1CONbits.TCKPS1 = 0;
 
+
 	/* Start the timer. */
 	T1CONbits.TON = 1;
 }
 /*-----------------------------------------------------------*/
+
+
+/* Start runtime stats timer */
+extern void vStartRuntimeStatsTimer(void)
+{
+//        const unsigned long ulCompareMatch = ( ( configCPU_CLOCK_HZ / portTIMER_PRESCALE ) / configTICK_RATE_HZ ) - 1;
+
+	/* Prescale of 8. */
+	T5CON = 0;
+	TMR5 = 0;
+
+	PR5 = 65535;
+
+	/* Setup timer 5 interrupt priority. */
+	_T5IP = INT_PRI_T5;
+
+	/* Clear the interrupt as a starting condition. */
+	_T5IF = 0;
+
+	/* Enable the interrupt. */
+	_T5IE = 1;
+
+	/* Setup the prescale value. */
+	T5CONbits.TCKPS0 = 1;
+	T5CONbits.TCKPS1 = 0;
+
+	/* Start the timer. */
+	T5CONbits.TON = 1;
+}
 
 void vPortEnterCritical( void )
 {
@@ -477,3 +512,11 @@ void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed char *pcTaskName
         asm("nop");
     }
 }
+
+
+void __attribute__((__interrupt__,__no_auto_psv__)) _T5Interrupt(void)
+{
+	ulTMR5_OverflowCount++;     // increment the load counter
+	_T5IF = 0;                  // clear the interrupt
+}
+
