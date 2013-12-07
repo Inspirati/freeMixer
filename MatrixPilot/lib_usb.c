@@ -43,7 +43,7 @@
 #include "usb_cdc.h"
 
 
-#define usbSTACK_SIZE				500
+#define usbSTACK_SIZE				600
 
 
 #if (HILSIM_USB != 1)
@@ -66,7 +66,8 @@ static portTASK_FUNCTION_PROTO( vUSBTask, pvParameters );
 
 void vStartUSBTasks( unsigned portBASE_TYPE uxPriority )
 {
-    xTaskCreate( vUSBTask, ( signed char * ) "USB", usbSTACK_SIZE, NULL, uxPriority, ( xTaskHandle * ) NULL );
+    signed portBASE_TYPE xReturn = xTaskCreate( vUSBTask, ( signed char * ) "USB", usbSTACK_SIZE, NULL, uxPriority, ( xTaskHandle * ) NULL );
+    xReturn++;
 }
 
 static portTASK_FUNCTION( vUSBTask, pvParameters )

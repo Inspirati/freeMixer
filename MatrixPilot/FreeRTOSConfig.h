@@ -88,10 +88,13 @@
 #define configMINIMAL_STACK_SIZE		( 190 )
 #define configISR_STACK_SIZE			( 400 )
 // #define configTOTAL_HEAP_SIZE			( ( size_t ) 28000 )
-//#define configTOTAL_HEAP_SIZE			( ( size_t ) 4000 )
-#define configTOTAL_HEAP_SIZE			( ( size_t ) 2000 )
+#define configTOTAL_HEAP_SIZE			( ( size_t ) 4000 )
+//#define configTOTAL_HEAP_SIZE			( ( size_t ) 2000 )
 #define configMAX_TASK_NAME_LEN			( 8 )
-#define configUSE_TRACE_FACILITY		0
+#define configUSE_TRACE_FACILITY		1
+#define configUSE_STATS_FORMATTING_FUNCTIONS    1
+//#define configGENERATE_RUN_TIME_STATS           0
+//#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS  0
 #define configUSE_16_BIT_TICKS			1
 #define configIDLE_SHOULD_YIELD			1
 #define configUSE_MUTEXES				1

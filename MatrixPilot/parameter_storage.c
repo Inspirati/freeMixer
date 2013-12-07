@@ -38,7 +38,8 @@ static portTASK_FUNCTION_PROTO( vParamStorageTask, pvParameters );
 
 void vStartParamStorageTask( unsigned portBASE_TYPE uxPriority )
 {
-    xTaskCreate( vParamStorageTask, ( signed char * ) "PRMSTOR", usbPARAM_STORE_STACK_SIZE, NULL, uxPriority, ( xTaskHandle * ) NULL );
+    signed portBASE_TYPE xReturn = xTaskCreate( vParamStorageTask, ( signed char * ) "PRMSTOR", usbPARAM_STORE_STACK_SIZE, NULL, uxPriority, ( xTaskHandle * ) NULL );
+    xReturn++;
 }
 
 static portTASK_FUNCTION( vParamStorageTask, pvParameters )
@@ -52,9 +53,14 @@ static portTASK_FUNCTION( vParamStorageTask, pvParameters )
     // Load all data
     parstore_load(0);
 
+    xTaskStatusType taskArray[5];
+    unsigned portBASE_TYPE uxArraySize = 5;
+    unsigned long pulTotalRunTime;
+
     for( ;; )
     {
         vTaskDelay( 500 / portTICK_RATE_MS );
+        uxTaskGetSystemState( taskArray, uxArraySize, &pulTotalRunTime );
     }
 
 }

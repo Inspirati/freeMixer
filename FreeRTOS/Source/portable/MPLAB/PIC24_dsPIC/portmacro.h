@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V7.6.0 - Copyright (C) 2013 Real Time Engineers Ltd. 
+    FreeRTOS V7.5.3 - Copyright (C) 2013 Real Time Engineers Ltd. 
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -70,6 +70,12 @@
 extern "C" {
 #endif
 
+/* a bit of a hack to get the stack limit */
+#ifdef traceTASK_CREATE
+#error traceTASK_CREATE is used by portmacro.h - please combine them
+#endif
+#define traceTASK_CREATE(pxnewTCB) 	 do{ *(pxNewTCB->pxTopOfStack)++ = pxNewTCB->pxEndOfStack - 16;  }while(0)
+
 /*-----------------------------------------------------------
  * Port specific definitions.  
  *
@@ -96,6 +102,7 @@ extern "C" {
 	typedef unsigned portLONG portTickType;
 	#define portMAX_DELAY ( portTickType ) 0xffffffff
 #endif
+#define WAIT_FOREVER portMAX_DELAY
 /*-----------------------------------------------------------*/
 
 /* Hardware specifics. */
@@ -107,8 +114,8 @@ extern "C" {
 /* Critical section management. */
 #define portINTERRUPT_BITS			( ( unsigned portSHORT ) configKERNEL_INTERRUPT_PRIORITY << ( unsigned portSHORT ) 5 )
 
-#define portDISABLE_INTERRUPTS()	SR |= portINTERRUPT_BITS                    
-#define portENABLE_INTERRUPTS()		SR &= ~portINTERRUPT_BITS
+#define portDISABLE_INTERRUPTS()	SRbits.IPL = configKERNEL_INTERRUPT_PRIORITY
+#define portENABLE_INTERRUPTS()		SRbits.IPL = 0;
 
 /* Note that exiting a critical sectino will set the IPL bits to 0, nomatter
 what their value was prior to entering the critical section. */

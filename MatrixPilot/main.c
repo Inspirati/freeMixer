@@ -44,6 +44,7 @@ int main(int argc, char** argv)
 #else
 int main(void)
 {
+
 	mcu_init();
 #endif
 
@@ -56,8 +57,8 @@ int main(void)
 
 	SRbits.IPL = 0; // turn on all interrupt priorities
 
-        vStartParamStorageTask( tskIDLE_PRIORITY );
-        vStartUSBTasks(tskIDLE_PRIORITY);
+        vStartUSBTasks(tskIDLE_PRIORITY + 1);
+        vStartParamStorageTask( tskIDLE_PRIORITY + 1 );
 
         vTaskStartScheduler();
 
