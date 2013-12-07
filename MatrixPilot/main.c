@@ -54,10 +54,9 @@ int main(void)
         init_events();
         timer_init();
 
-        init_parameter_storage();
-
 	SRbits.IPL = 0; // turn on all interrupt priorities
 
+        vStartParamStorageTask( tskIDLE_PRIORITY );
         vStartUSBTasks(tskIDLE_PRIORITY);
 
         vTaskStartScheduler();

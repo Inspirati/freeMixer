@@ -1,5 +1,11 @@
 
+
 #include "defines.h"
+#include <stdlib.h>
+#include "FreeRTOS.h"
+#include "task.h"
+
+
 #include "parameter_storage.h"
 #include "parameter_scaling.h"
 
@@ -10,108 +16,83 @@
 #endif
 #include <string.h>
 
-uint16_t parstore_event_handle = INVALID_EVENT_HANDLE;
-uint16_t parstore_timer_handle = TIMER_INVALID_HANDLE;
 
 uint16_t parstore_section_index;
 
-static void parstore_initS(void);
-static void parstore_waitingS(void);
-static void parstore_start_loadingS(void);
-static void parstore_loadingS(void);
-static void parstore_start_savingS(void);
-static void parstore_savingS(void);
+static void parstore_load(uint16_t load_flags);
+static void parstore_save(uint16_t save_flags);
 static void parstore_defaultS(void);
 
-static void parstore_loading_specificS(void);
-static void parstore_saving_specificS(void);
-static void parstore_start_loading_specificS(void);
-static void parstore_start_saving_specificS(void);
+void parstore_load_section(struct param_section_s*    psect);
+void parstore_save_section(struct param_section_s*    psect);
 
-void (*parstoreS)(void) = &parstore_initS;  // &parstore_waitingS; //
 
 void (*store_callback)(boolean)  = NULL;
 
-enum
+#define usbPARAM_STORE_STACK_SIZE   500
+
+
+/* The task function */
+static portTASK_FUNCTION_PROTO( vParamStorageTask, pvParameters );
+
+
+void vStartParamStorageTask( unsigned portBASE_TYPE uxPriority )
 {
-    PARSTORE_REQUEST_NONE,
-    PARSTORE_REQUEST_SAVE,
-    PARSTORE_REQUEST_LOAD,
-    PARSTORE_REQUEST_SAVE_SPECIFIC,
-    PARSTORE_REQUEST_LOAD_SPECIFIC,
-} PARSTORE_REQUESTS;
-
-uint16_t parstore_loadsave_flags = 0;
-
-uint16_t parstore_status = PARSTORE_REQUEST_NONE;
-
-
-void parstore_callback(void)
-{
-    parstoreS();
+    xTaskCreate( vParamStorageTask, ( signed char * ) "PRMSTOR", usbPARAM_STORE_STACK_SIZE, NULL, uxPriority, ( xTaskHandle * ) NULL );
 }
 
-
-// Initialize storage
-void init_parameter_storage(void)
+static portTASK_FUNCTION( vParamStorageTask, pvParameters )
 {
-    parstore_event_handle = register_event_p(&parstore_callback, EVENT_PRIORITY_LOW);
-    parstore_timer_handle = timer_register();
+    /* Just to stop compiler warnings. */
+    ( void ) pvParameters;
 
-    // Non repeating timer to start of initialisation
-    timer_start(parstore_timer_handle, 1000, false, parstore_event_handle);
-    parstore_status = PARSTORE_REQUEST_NONE;
-}
+    // Pause 100ms at the start, just to let the system settle
+    vTaskDelay( 100 / portTICK_RATE_MS );
 
-static void parstore_initS(void)
-{
-    parstoreS = &parstore_waitingS;
-    parstore_status = PARSTORE_REQUEST_LOAD;
-    timer_start(parstore_timer_handle, 1000, false, parstore_event_handle);
-}
+    // Load all data
+    parstore_load(0);
 
-static void parstore_waitingS(void)
-{
-    switch(parstore_status)
+    for( ;; )
     {
-        case PARSTORE_REQUEST_NONE:
-            parstoreS = &parstore_waitingS;
-            timer_start(parstore_timer_handle, 500, false, parstore_event_handle);
-            break;
-        case PARSTORE_REQUEST_SAVE:
-            parstore_start_savingS();
-            break;
-        case PARSTORE_REQUEST_LOAD:
-            parstore_start_loadingS();
-            break;
+        vTaskDelay( 500 / portTICK_RATE_MS );
     }
+
 }
 
-static void parstore_start_loadingS(void)
+
+void parstore_load(uint16_t load_flags)
 {
-    parstore_section_index = 0;
+    uint16_t maxsecs = get_section_count();
+    struct param_section_s*    psect;
+    uint16_t section;
 
-    parstoreS = &parstore_loadingS;
-    timer_start(parstore_timer_handle, 10, false, parstore_event_handle);
-}
+    for(section = 0; section < maxsecs; section++)
+    {
+        psect = get_section(section);
+        parstore_load_section(psect);
 
+        vTaskDelay( 10 / portTICK_RATE_MS );
+    }
+
+    if(store_callback != NULL)
+    {
+        store_callback(true);
+        store_callback = NULL;
+    }
+};
 
 // load parameters from storage
-// Runs at low priority with callback
-static void parstore_loadingS(void)
+void parstore_load_section(struct param_section_s*    psect)
 {
-    struct param_section_s*     psect;
     struct param_info_s*        pparam;
     mavlink_param_union_t       param;
     char                        paramstr[64];       // Line read buffer
     char *                      pch;                //
     INI_FILETYPE                file;
     uint16_t maxparms = get_param_count();
-    uint16_t maxsecs = get_section_count();
     uint16_t paramcount = 0;
     uint16_t param_index;
 
-    psect = get_section(parstore_section_index);
 //    strcpy(filename, psect->name);
     sprintf(paramstr, "%s.PAR",  psect->name);
     ini_openread(paramstr, &file);
@@ -174,50 +155,48 @@ static void parstore_loadingS(void)
     if(psect->ploadCallback != NULL)
            psect->ploadCallback( paramcount == get_section_params_count(parstore_section_index) );
 
+}
 
-    parstore_section_index++;
+// save parameters to storage
+void parstore_save(uint16_t save_flags)
+{
+    struct param_section_s*    psect;
+    uint16_t maxsecs = get_section_count();
+    uint16_t section;
 
-    // Come back in 100ms to do the next section, otherwise stop
-    if(parstore_section_index < maxsecs)
-        timer_start(parstore_timer_handle, 100, false, parstore_event_handle);
-    else
+    for(section = 0; section < maxsecs; section++)
     {
-        parstore_status = PARSTORE_REQUEST_NONE;
-        parstore_loadsave_flags = 0;
+        psect = get_section(section);
+        parstore_save_section(psect);
+
         if(store_callback != NULL)
         {
             store_callback(true);
             store_callback = NULL;
         }
-        parstoreS = &parstore_waitingS;
-        timer_start(parstore_timer_handle, 100, false, parstore_event_handle);
+
+        vTaskDelay( 10 / portTICK_RATE_MS );
     }
-}
 
-
-static void parstore_start_savingS(void)
-{
-    parstore_section_index = 0;
-
-    parstoreS = &parstore_savingS;
-    timer_start(parstore_timer_handle, 10, false, parstore_event_handle);
+    if(store_callback != NULL)
+    {
+        store_callback(true);
+        store_callback = NULL;
+    }
 }
 
 
 // save parameters to storage
 // Runs at low priority with callback
-static void parstore_savingS(void)
+void parstore_save_section(struct param_section_s* psect)
 {
-    struct param_section_s*    psect;
     struct param_info_s*       pparam;
     mavlink_param_union_t       param;
     char                paramstr[64];
     INI_FILETYPE        file;
     uint16_t maxparms = get_param_count();
-    uint16_t maxsecs = get_section_count();
 
     uint16_t parstore_param_index;
-    psect = get_section(parstore_section_index);
 //    strcpy(filename, psect->name);
     sprintf(paramstr, "%s.PAR",  psect->name);
     ini_openwrite(paramstr, &file);
@@ -267,50 +246,17 @@ static void parstore_savingS(void)
 
     ini_close(&file);
 
-    parstore_section_index++;
-
-    // Come back in 100ms to do the next section, otherwise stop
-    if(parstore_section_index < maxsecs)
-        timer_start(parstore_timer_handle, 100, false, parstore_event_handle);
-    else
-    {
-        parstore_status = PARSTORE_REQUEST_NONE;
-        parstore_loadsave_flags = 0;
-        if(store_callback != NULL)
-        {
-            store_callback(true);
-            store_callback = NULL;
-        }
-        parstoreS = &parstore_waitingS;
-        timer_start(parstore_timer_handle, 100, false, parstore_event_handle);
-    }
 }
 
 // save parameters to storage
 boolean save_parameters(uint16_t flags, void (*callback) (boolean) )
 {
-    if(parstore_status == PARSTORE_REQUEST_NONE)
-    {
-        parstore_loadsave_flags = flags;
-        store_callback = callback;
-        parstore_status = PARSTORE_REQUEST_SAVE;
-        return true;
-    }
-    else
         return false;
 }
 
 // load parameters from storage
 boolean load_parameters(uint16_t flags, void (*callback) (boolean) )
 {
-    if(parstore_status == PARSTORE_REQUEST_NONE)
-    {
-        parstore_loadsave_flags = flags;
-        store_callback = callback;
-        parstore_status = PARSTORE_REQUEST_LOAD;
-        return true;
-    }
-    else
         return false;
 }
 

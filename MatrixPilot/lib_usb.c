@@ -36,8 +36,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-
-
 #include "lib_usb.h"
 #include "USB/usb.h"
 #include "USB/usb_function_msd.h"
@@ -61,9 +59,7 @@ void usb_init(void)
 }
 
 
-/* The task function.  Repeatedly performs a 32 bit calculation, checking the
-result against the expected result.  If the result is incorrect then the
-context switch must have caused some corruption. */
+/* The task function.  */
 static portTASK_FUNCTION_PROTO( vUSBTask, pvParameters );
 
 

@@ -25,9 +25,14 @@ typedef enum
 
 typedef void (*storageCallback)(boolean);  // Callback type
 
+struct parstore_req_s
+{
+    boolean     loading;
+    uint16_t    flags;
+};
 
-    // Initialize storage
-    void init_parameter_storage(void);
+    // Start parameter storage task
+    void vStartParamStorageTask( unsigned portBASE_TYPE uxPriority );
 
     // save parameters to storage
     // Runs at low priority with callback
